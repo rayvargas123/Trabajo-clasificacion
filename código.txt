@@ -1,0 +1,108 @@
+---
+title: "Trabajo segmentación"
+author: 
+ - "Yubar Daniel Marín"
+ - "Yosel"
+ - "Mateo"
+ - "Brayan"
+date: "16 de mayo de 2018"
+output: pdf_document
+---
+
+##Introducción
+
+Debido a la heterogeiedad del mercado, dirigir estrategias de marquetin generales para todos lo clientes se a convertido en algo inutil; por esta razón a surgido la necesidad de dividir el mercado en grupos cuyos integrantes tengas ciertas caraceristicas que los asemejen y peritan a la empresa implementar estatregias de mercadotenia que minimizan cosos y que obtener un resultado mas satisfactorio.
+
+##Metodo 
+
+Para realizar la segmentación se implementara el algoritmo *K-means* el cual es un metodo de clustering que pertenece a la categoria de apredizaje no supervisado. Lo que se busca con este metodo es crear grupos de observaciones con caracteristicas similares, y asi maximixar la variacion entre grupos y minimizarla dentro de cada grupo.
+
+Se selecciono este medoto de clasificacion ya que es rapido y  con almacenamiento reducido ya que solo se necesitan guardar los *K* centroides seleccionados. 
+
+##Prodedimiento
+
+### Escalar los datos
+
+```{r echo=FALSE}
+base <- read.delim("base4.txt",header = T)
+
+
+require(MASS)
+
+maxs <- apply(base[,2:ncol(base)], 2, max)
+mins <- apply(base[,2:ncol(base)], 2, min)
+
+escala <- scale(base[,2:ncol(base)])
+escala <- as.data.frame(escala)
+
+```
+
+
+Lo primero que debemos hacer es escalar las variables con el fin de evitar que algunas  tengan mas peso que las demas. En este caso utilizaresmos el metodo *Max-Min* represnetado matematicamente de la siguiente forma : 
+
+
+$$x'_1=(max_{objetivo}-min_{objetivo}) *[\frac{x_i-min_{valor}}{max_{valor}-min_{valor}}]+min_{objetivo} $$
+
+- $x`_1=$  Entrada normalizada de índice i.
+
+- $x_i=$  Entrada de índice i. 
+
+- $max_{objetivo}=$ Valor máximo del rango en el que quiero aplicar las entradas
+
+- $max_{objetivo}=$ Valor máximo del rango en el que quiero aplicar las entradas.
+
+- $max_{valor}=$ Valor máximo real de las entradas.
+
+- $min_{valor}=$ valor máximo real de las entradas.
+
+
+###Determinación del número de cluster óptimo
+
+Debemos asignar el numero de clusters óptimo adecuado para la segmentación por lo que debemos probar desde el 1 hasta el numero de clouster que consideramos como un numero  maximo a permitir en nustro caso es de 1 a 15 (Maximo).
+
+En el siguiente grafica podemos observar la relación entre el numero de clouster y el valor de la suma de cuadrados intergrupos teniendo siempre presente que se prefiere una varianza mayor entre los grupos.
+
+```{r echo=FALSE}
+sumbt <- kmeans(escala,centers = 1)$betweenss
+for (i in 2:15) sumbt[i] <- kmeans(escala,centers = i)$betweenss
+plot(1:15,sumbt,type = "b",xlab = "Número de cluster",ylab = "Varianza entre grupos", main = "Número de clouster óptimos") 
+```
+
+Por otro lado se presenta la grafica que relaciona la varianza dentro de cada grupo con el numero de clouster,re cordando que se prefiera una menor varianza entre los elementos de cada categoria.
+
+
+
+```{r echo=FALSE}
+sumbt1 <- kmeans(escala,centers = 1)$withinss
+for (i in 2:15) sumbt1[i] <- kmeans(escala,centers = i)$withinss
+plot(1:15,sumbt1,type = "b",xlab = "Número de cluster",ylab = "Varianza dentro de cada grupo", main = "Número de clouster óptimos") 
+
+```
+
+De la primera graficas se puede observar que que al tener 8 y 9 grupos podemos tener casi  la misma varianza,y que ademas se ver que hay una mas varianza entre grupos cuando se tiene 10 grupos que cuando se tiene 11, por lo que 10 puede ser posibles puntos de corte.
+
+Ahora en la grafica de la varianza dentro de cada grupo se puede observar que hay un cambio muy brusco cuando se tiene 7 clouster, por lo que se puede hacer un corte en 5 grupos.
+
+###Creación de los subgrupos
+
+En la siguiente tabla se presentan algunas medidas que permiten, seleccionar el numero clouters  adecuado para la segmentación. 
+
+```{r echo=FALSE}
+clu5 <- kmeans(escala,centers = 5)
+clu10 <- kmeans(escala,centers = 10)
+Varianza.en.grupo <- c(clu5$withinss,clu10$withinss)
+Varianza_entre_grupo <- c(clu5$betweenss,clu10$betweenss)
+Varianza_total_en_los_grupos <-c(clu5$tot.withinss,
+                             clu10$tot.withinss)
+
+
+tablacom <- cbind(Varianza_entre_grupo,Varianza_total_en_los_grupos)
+rownames(tablacom)=c("5","10")
+tablacom
+
+base1 <- data.frame(base[1],clu5$cluster)
+base2 <- data.frame(base[1],clu10$cluster)
+hist(base1$clu5.cluster)
+hist(base2$clu10.cluster)
+```
+
